@@ -4,3 +4,4 @@ class Field:
         self.y = y
         self.pawn = pawn
         self.value = value
+

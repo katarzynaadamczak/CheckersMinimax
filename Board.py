@@ -5,7 +5,7 @@ class Board:
     def __init__(self):
         self.fields = self.make_fields()
         self.pawns = self.create_pawns()
-        self.fields_with_pawns = self.print_board()
+        self.fields_with_pawns = self.get_board_with_pawns()
 
     @staticmethod
     def make_fields():
@@ -14,7 +14,7 @@ class Board:
             row = []
             for j in range(8):
                 if (i + j) % 2 == 1:
-                    row.append(Field(j, i , "_", 0))
+                    row.append(Field(j, i, "_", 0))
                 else:
                     row.append(Field(j, i, "  ", 0))
             fields.append(row)
@@ -71,17 +71,43 @@ class Board:
                 print(field.pawn, end="")
             print()
 
-    def is_empty_field(self, field: Field):
+    def is_empty_field(self, x, y):
         board = self.get_board_with_pawns()
-        return bool(board[field.y][field.x].value)
+        return bool(board[y][x].value)
 
-    def does_field_exist(self, field: Field):
+    def does_field_exist(self, x, y):
         board = self.get_board_with_pawns()
         try:
-            get_field = isinstance(board[field.y][field.x], Field)
+            get_field = isinstance(board[y][x], Field)
         except Exception:
             return False
         return get_field
+
+    def copy_board(self):
+        new_board = Board()
+        new_board.fields = self.fields
+        new_board.pawns = self.pawns
+        new_board.fields_with_pawns = self.fields_with_pawns
+        return new_board
+
+    def remove_pawn(self, pawn: Field):
+        for i, each in enumerate(self.pawns):
+            if each.x == pawn.x & each.y == pawn.y:
+                self.pawns.pop(i)
+                self.fields_with_pawns = self.get_board_with_pawns()
+                return 0
+        raise Exception("Could not find pawn in board")
+
+    def add_pawn(self, pawn: Field):
+        self.pawns.append(pawn)
+        self.fields_with_pawns = self.get_board_with_pawns()
+
+    def is_opponent_pawn(self, player, x, y):
+        if not self.is_empty_field(x, y):
+            if self.pawns[y][x].pawn.lower() != player:
+                return True
+        return False
+
 
 w = Board()
 w.print_board()
