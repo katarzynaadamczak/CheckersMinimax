@@ -1,34 +1,83 @@
 from Board import *
 from Field import Field
 
+
 MAX_DEPTH = 3
 PLAYER1 = "w"
 PLAYER2 = "b"
-
+"""
+ruch gracza
+ruch komputera - minimax
+sprawdamy najlepszy minimax - komputer sie rusza
+"""
 
 def main():
     board = Board()
+    # f1 = Field(2, 1, "B", -10)
+    # f2 = Field(3, 2, "B", -10)
+    # f3 = Field(1, 4, "w", 10)
+    # f4 = Field(2, 3, 'w', 10)
+    # board.pawns = [f1, f2, f3, f4]
+    # board.fields_with_pawns = board.get_board_with_pawns()
+
+    # # print(board.pawns)
+    # board.print_board()
+    # print(minimax(board, PLAYER1, 1))
+    run(board)
+
+def run(board):
+    player = PLAYER1
+    counter = 0
+    while True:
+        if counter > 30:
+            print("REMIS")
+            break
+        print("Before", player, "move:")
+        board.print_board()
+        all_pawns_before = board.evaluate()
+        score, board = minimax(board, player, 0)
+        all_pawns_after = score
+        if all_pawns_after == all_pawns_before:
+            counter += 1
+        else:
+            counter = 0
+
+        print()
+        player = PLAYER2 if player == PLAYER1 else PLAYER1
+        if is_game_over(board):
+            break
+    board.print_board()
+
 
 
 def minimax(board, player, depth):
+    # print(player, depth)
     if is_game_over(board=board) or depth == MAX_DEPTH:
-        return board.evaluate()
-    children_moves = all_possible_moves_for_player(board, )
+        # board.print_board()
+        # print()
+        return board.evaluate(), board
+    children_moves = get_all_correct_moves(board, player)
+    # print(children_moves)
 
     best_score = 0
+    best_board = board
     if player == PLAYER1:  # max
-        best_score = -1000
-        for single_move in children_moves:
-            score = minimax(single_move, depth + 1)
+        best_score = -10000
+        for single_board in children_moves:
+            temp_board = single_board
+            score, potential_board = minimax(single_board, player=PLAYER2, depth=depth + 1)
             if score > best_score:
                 best_score = score
+                best_board = temp_board
     if player == PLAYER2:  # min
-        best_score = 1000
-        for single_move in children_moves:
-            score = minimax(single_move, depth + 1)
+        best_score = 10000
+        for single_board in children_moves:
+            temp_board = single_board
+            score, potential_board = minimax(single_board, player=PLAYER1, depth=depth + 1)
             if score < best_score:
                 best_score = score
-    return best_score
+                best_board = temp_board
+    return best_score, best_board
 
 
 def is_game_over(board):
@@ -46,39 +95,50 @@ def is_game_over(board):
 #             if is_pawn_on_field(single_pawn.x+1,single_pawn.y-1) == False:
 #                 moves.append(Field())
 
-def get_all_correct_moves(board, player_name, fields, is_capture=False):
+def get_all_correct_moves(board, player):
     correct_moves = []
     possible_captures = []
-    pawns = board.get_player_pawns(player_name)  # get_pieces_for_player_name(board, player_name)
+    pawns = board.get_player_pawns(player)  # get_pieces_for_player_name(board, player_name)
+    # print("start")
     for pawn in pawns:
-        if pawn.pawn == "B" or pawn.pawn == "W":
-            correct_moves = get_correct_moves_for_queen(pawn, fields, player_name)
-            possible_captures = get_captures_for_queen()
+        if pawn.pawn.isupper():
+            correct_moves.extend(get_correct_moves_for_queen(board, pawn))
+            possible_captures = get_captures_for_queen(board, pawn, player)
+            correct_moves.extend(possible_captures) if possible_captures else None
+            # print(correct_moves)
         else:
-            correct_moves = get_correct_moves_for_pawn(pawn, fields, player_name, is_capture)
-            possible_captures = get_captures_for_pawn()
-        correct_moves.append(correct_moves)
-        correct_moves.append(possible_captures)
+            correct_moves.extend(get_correct_moves_for_pawn(board, pawn, player))
+            possible_captures_right = get_captures_for_pawn_right(board, pawn, player)
+
+            correct_moves.append(possible_captures_right) if possible_captures_right else None
+            possible_captures_left = get_captures_for_pawn_left(board, pawn, player)
+
+            correct_moves.append(possible_captures_left) if possible_captures_left else None
+
     return correct_moves
 
 
 def get_correct_moves_for_pawn(board, pawn, player):
     if player == PLAYER1:
-        direction = -1
-    else:
         direction = 1
+    else:
+        direction = -1
 
     correct_moves = []
     possible_field = Field(pawn.x + 1, pawn.y + direction, pawn.pawn, pawn.value)
     if is_correct_move(board, possible_field):
         new_board = board.copy_board()
         new_board.remove_pawn(pawn)
+        if board.is_on_edge(possible_field.x, possible_field.y):
+            possible_field = board.pawn_to_queen(possible_field)
         new_board.add_pawn(possible_field)
         correct_moves.append(new_board)
     possible_field = Field(pawn.x - 1, pawn.y + direction, pawn.pawn, pawn.value)
     if is_correct_move(board, possible_field):
         new_board = board.copy_board()
         new_board.remove_pawn(pawn)
+        if board.is_on_edge(possible_field.x, possible_field.y):
+            possible_field = board.pawn_to_queen(possible_field)
         new_board.add_pawn(possible_field)
         correct_moves.append(new_board)
     return correct_moves
@@ -112,42 +172,49 @@ def get_correct_moves_for_pawn(board, pawn, player):
 
 def get_captures_for_pawn_right(board, pawn, player) -> (Board, None):
     if player == PLAYER1:
-        direction = -1
-    else:
         direction = 1
+    else:
+        direction = -1
 
     board_with_captured = None
-    if board.is_oponent_pawn(player, pawn.x + 1, pawn.y + direction) & board.is_empty_field(pawn.x + 2, pawn.y + (2*direction)):
-        future_pawn = Field(pawn.x + 2, pawn.y + (2*direction), pawn.pawn, pawn.value)
-        opponent_pawn = Field(pawn.x + 1, pawn.y + direction, "c", 0)
-        board_with_captured = board.copy_board()
-        board_with_captured.remove_pawn(opponent_pawn)
-        board_with_captured.remove_pawn(pawn)
-        board_with_captured.add_pawn(future_pawn)
-        potential = get_captures_for_pawn_right(board_with_captured, future_pawn, player)
-        if potential:
-            board_with_captured = potential
+    if board.does_field_exist(pawn.x + 1, pawn.y + direction) and board.does_field_exist(pawn.x + 2, pawn.y + (2 * direction)):
+        if board.is_opponent_pawn(player, pawn.x + 1, pawn.y + direction) and board.is_empty_field(pawn.x + 2, pawn.y + (2 * direction)):
+            future_pawn = Field(pawn.x + 2, pawn.y + (2 * direction), pawn.pawn, pawn.value)
+            opponent_pawn = Field(pawn.x + 1, pawn.y + direction, "c", 0)
+            board_with_captured = board.copy_board()
+            board_with_captured.remove_pawn(opponent_pawn)
+            board_with_captured.remove_pawn(pawn)
+            if board.is_on_edge(future_pawn.x, future_pawn.y):
+                future_pawn = board.pawn_to_queen(future_pawn)
+            board_with_captured.add_pawn(future_pawn)
+            potential = get_captures_for_pawn_right(board_with_captured, future_pawn, player)
+            if potential:
+                board_with_captured = potential
     return board_with_captured
 
 
 def get_captures_for_pawn_left(board, pawn, player) -> (Board, None):
     if player == PLAYER1:
-         direction = -1
-    else:
         direction = 1
+    else:
+        direction = -1
 
     board_with_captured = None
-    if board.is_oponent_pawn(player, pawn.x - 1, pawn.y + direction) & board.is_empty_field(pawn.x - 2, pawn.y + (2*direction)):
-        future_pawn = Field(pawn.x - 2, pawn.y + (2*direction), pawn.pawn, pawn.value)
-        opponent_pawn = Field(pawn.x - 1, pawn.y + direction, "c", 0)
-        board_with_captured = board.copy_board()
-        board_with_captured.remove_pawn(opponent_pawn)
-        board_with_captured.remove_pawn(pawn)
-        board_with_captured.add_pawn(future_pawn)
-        potential = get_captures_for_pawn_left(board_with_captured, future_pawn, player)
-        if potential:
-            board_with_captured = potential
+    if board.does_field_exist(pawn.x - 1, pawn.y + direction) and board.does_field_exist(pawn.x - 2, pawn.y + (2 * direction)):
+        if board.is_opponent_pawn(player, pawn.x - 1, pawn.y + direction) and board.is_empty_field(pawn.x - 2, pawn.y + (2 * direction)):
+            future_pawn = Field(pawn.x - 2, pawn.y + (2 * direction), pawn.pawn, pawn.value)
+            opponent_pawn = Field(pawn.x - 1, pawn.y + direction, "c", 0)
+            board_with_captured = board.copy_board()
+            board_with_captured.remove_pawn(opponent_pawn)
+            board_with_captured.remove_pawn(pawn)
+            if board.is_on_edge(future_pawn.x, future_pawn.y):
+                future_pawn = board.pawn_to_queen(future_pawn)
+            board_with_captured.add_pawn(future_pawn)
+            potential = get_captures_for_pawn_left(board_with_captured, future_pawn, player)
+            if potential:
+                board_with_captured = potential
     return board_with_captured
+
 
 def get_correct_moves_for_queen(board, pawn):
     moves = []
@@ -155,6 +222,7 @@ def get_correct_moves_for_queen(board, pawn):
     moves.extend(get_correct_moves_for_queen_directions(board, pawn, -1, 1))
     moves.extend(get_correct_moves_for_queen_directions(board, pawn, -1, -1))
     moves.extend(get_correct_moves_for_queen_directions(board, pawn, 1, -1))
+    # print(moves)
     return moves
 
 
@@ -162,7 +230,7 @@ def get_correct_moves_for_queen_directions(board, pawn, nx, ny):
     correct_moves = []
     x = pawn.x
     y = pawn.y
-    n = 0
+    n = 1
     while True:
         x = x + n * nx
         y = y + n * ny
@@ -172,41 +240,62 @@ def get_correct_moves_for_queen_directions(board, pawn, nx, ny):
             new_board.remove_pawn(pawn)
             new_board.add_pawn(possible_field)
             correct_moves.append(new_board)
-            n += 1
+            # print("dupa")
+
         else:
             break
+        n += 1
+    # print(correct_moves)
     return correct_moves
 
 
-def get_captures_for_queen():
-    while:
-        x + n
-        y + n
-        if friend:
-            break
-        elif not exists:
-            break
-        elif oponent:
-            if jedno_dalej_wolne:
-                ZNALAZLEM
-            break
-        elif empty:
-            idziemy
-            dalej, nic
-            sie
-            nie
-            stalo
-        raise Exception
+def get_captures_for_queen(board, pawn, player) -> list:
+    moves = []
+    moves.extend(get_captures_for_queen_directions(board, pawn, player, 1, 1))
+    moves.extend(get_captures_for_queen_directions(board, pawn, player, -1, 1))
+    moves.extend(get_captures_for_queen_directions(board, pawn, player, -1, -1))
+    moves.extend(get_captures_for_queen_directions(board, pawn, player, 1, -1))
+    # print(moves)
+    return moves
 
+
+def get_captures_for_queen_directions(board, pawn, player, nx, ny):
+    x = pawn.x
+    y = pawn.y
+    n = 0
+    board_with_captured = []
+    while True:
+        x = x + n * nx
+        y = y + n * ny
+        if board.does_field_exist(x, y):
+            if board.is_opponent_pawn(player, x, y):
+                if is_correct_move(board, Field(x + nx, y + ny, "c", 100)):
+                    # print("oponen")
+                    future_pawn = Field(x + nx, y + ny, pawn.pawn, pawn.value)
+                    opponent_pawn = Field(x, y, "c", 0)
+                    new_board = board.copy_board()
+                    new_board.remove_pawn(pawn)
+                    new_board.remove_pawn(opponent_pawn)
+                    new_board.add_pawn(future_pawn)
+                    board_with_captured = [new_board]
+                    # potential = get_captures_for_queen(new_board, future_pawn, player)
+                    # if potential:
+                    #     print(type(potential))
+                    #     board_with_captured = potential
+                    #     print("zbicie")
+
+                    break
+        else:
+            break
+        n += 1
+    return board_with_captured
 
 
 def is_correct_move(board, possible_field):
-    options = []
-    options.append(board.is_empty_field(possible_field))
-    options.append(board.does_field_exist(possible_field.x,possible_field.y))
-    return all(options)
-
-
+    if board.does_field_exist(possible_field.x, possible_field.y):
+        if board.is_empty_field(possible_field.x, possible_field.y):
+            return True
+    return False
 
 
 # def is_possible_to_kill(board, field_start, player):
