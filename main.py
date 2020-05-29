@@ -7,11 +7,6 @@ COUNTERA = 0
 MAX_DEPTH = 3
 PLAYER1 = "w"
 PLAYER2 = "b"
-"""
-ruch gracza
-ruch komputera - minimax
-sprawdamy najlepszy minimax - komputer sie rusza
-"""
 
 
 def main():
@@ -36,7 +31,6 @@ def main():
     end2 = time.time()
     print("Minimax time: ", (end1 - start1), "Alpha-beta pruning time: ", (end2 - start2))
     print("Minimax nodes: ", COUNTERM, "Alpha-beta pruning nodes: ", COUNTERA)
-
 
 
 def run(board, what_algorithm):
@@ -70,7 +64,6 @@ def minimax(board, player, depth):
     COUNTERM += 1
 
     if is_game_over(board=board) or depth == MAX_DEPTH:
-
         return board.evaluate(), board
     children_moves = get_all_correct_moves(board, player)
 
@@ -100,7 +93,6 @@ def alpha_beta(board, player, depth, alpha, beta):
     COUNTERA += 1
 
     if is_game_over(board=board) or depth == MAX_DEPTH:
-
         return board.evaluate(), board
     children_moves = get_all_correct_moves(board, player)
 
@@ -134,7 +126,6 @@ def is_game_over(board):
     if board.count_pawns('b') == 0:
         return True
     return False
-
 
 
 def get_all_correct_moves(board, player):
@@ -184,32 +175,6 @@ def get_correct_moves_for_pawn(board, pawn, player):
         new_board.add_pawn(possible_field)
         correct_moves.append(new_board)
     return correct_moves
-
-    # possible_field = Field(pawn.x + 1, pawn.y + direction, pawn.pawn, pawn.value)
-    # if is_correct_move(board, possible_field):
-    #     correct_moves.append(possible_field)
-    # possible_field_to_kill = Field(possible_field.x + 1, possible_field.y + direction, possible_field.pawn, possible_field.value)
-    # if is_correct_move(board, possible_field_to_kill):
-    #     correct_moves.append(possible_field_to_kill)
-    #     next_move = get_correct_moves_for_pawn()
-    #
-    # # idz na skok o 1 + correct move
-    # # idz na skos o 2 i sprzawdz czy zbicie + correct move
-    # if is_correct_move(pawn.x + 1, pawn.y + direction, fields, player_name, 1, direction, is_capture):
-    #     #
-    #     correct_moves.append(Move(x + 1, y, 0, piece.x, piece.y))
-    # if is_correct_move(x - 1, y, fields, player_name, -1, direction, is_capture):
-    #     correct_moves.append(Move(x - 1, y, 0, piece.x, piece.y))
-    # # check for possible capture moves back
-    #
-    # direction = -direction
-    # x = piece.x
-    # y = piece.y - 1 * direction
-    # if is_correct_move(x + 1, y, fields, player_name, 1, direction, True):
-    #     correct_moves.append(Move(x + 1, y, 0, piece.x, piece.y))
-    # if is_correct_move(x - 1, y, fields, player_name, -1, direction, True):
-    #     correct_moves.append(Move(x - 1, y, 0, piece.x, piece.y))
-    # return correct_moves
 
 
 def get_captures_for_pawn_right(board, pawn, player) -> (Board, None):
@@ -288,7 +253,6 @@ def get_correct_moves_for_queen_directions(board, pawn, nx, ny):
             new_board.remove_pawn(pawn)
             new_board.add_pawn(possible_field)
             correct_moves.append(new_board)
-            # print("dupa")
 
         else:
             break
@@ -326,11 +290,6 @@ def get_captures_for_queen_directions(board, pawn, player, nx, ny):
                     new_board.remove_pawn(opponent_pawn)
                     new_board.add_pawn(future_pawn)
                     board_with_captured = [new_board]
-                    # potential = get_captures_for_queen(new_board, future_pawn, player)
-                    # if potential:
-                    #     print(type(potential))
-                    #     board_with_captured = potential
-                    #     print("zbicie")
 
                     break
         else:
