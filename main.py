@@ -1,7 +1,9 @@
 from Board import *
 from Field import Field
+import time
 
-
+COUNTERM = 0
+COUNTERA = 0
 MAX_DEPTH = 3
 PLAYER1 = "w"
 PLAYER2 = "b"
@@ -11,10 +13,13 @@ ruch komputera - minimax
 sprawdamy najlepszy minimax - komputer sie rusza
 """
 
+
 def main():
-    board = Board()
-    # f1 = Field(2, 1, "B", -10)
-    # f2 = Field(3, 2, "B", -10)
+    board1 = Board()
+    board2 = Board()
+    board1.print_board()
+    # f1 = Field(2, 1, "b", -10)
+    # f2 = Field(3, 2, "b", -10)
     # f3 = Field(1, 4, "w", 10)
     # f4 = Field(2, 3, 'w', 10)
     # board.pawns = [f1, f2, f3, f4]
@@ -23,41 +28,51 @@ def main():
     # # print(board.pawns)
     # board.print_board()
     # print(minimax(board, PLAYER1, 1))
-    run(board)
+    start1 = time.time()
+    run(board1, "mini")
+    end1 = time.time()
+    start2 = time.time()
+    run(board2, "alpha")
+    end2 = time.time()
+    print("Minimax time: ", (end1 - start1), "Alpha-beta pruning time: ", (end2 - start2))
+    print("Minimax nodes: ", COUNTERM, "Alpha-beta pruning nodes: ", COUNTERA)
 
-def run(board):
+
+
+def run(board, what_algorithm):
     player = PLAYER1
     counter = 0
     while True:
         if counter > 30:
             print("REMIS")
             break
-        print("Before", player, "move:")
-        board.print_board()
+        # print("Before", player, "move:")
+        # board.print_board()
         all_pawns_before = board.evaluate()
-        score, board = minimax(board, player, 0)
+        if what_algorithm == "mini":
+            score, board = minimax(board, player, 0)
+        else:
+            score, board = alpha_beta(board, player, 0, -10000, 10000)
         all_pawns_after = score
         if all_pawns_after == all_pawns_before:
             counter += 1
         else:
             counter = 0
 
-        print()
         player = PLAYER2 if player == PLAYER1 else PLAYER1
         if is_game_over(board):
             break
     board.print_board()
 
 
-
 def minimax(board, player, depth):
-    # print(player, depth)
+    global COUNTERM
+    COUNTERM += 1
+
     if is_game_over(board=board) or depth == MAX_DEPTH:
-        # board.print_board()
-        # print()
+
         return board.evaluate(), board
     children_moves = get_all_correct_moves(board, player)
-    # print(children_moves)
 
     best_score = 0
     best_board = board
@@ -80,6 +95,39 @@ def minimax(board, player, depth):
     return best_score, best_board
 
 
+def alpha_beta(board, player, depth, alpha, beta):
+    global COUNTERA
+    COUNTERA += 1
+
+    if is_game_over(board=board) or depth == MAX_DEPTH:
+
+        return board.evaluate(), board
+    children_moves = get_all_correct_moves(board, player)
+
+    best_score = 0
+    best_board = board
+    if player == PLAYER1:  # max
+        best_score = -10000
+        for single_board in children_moves:
+            score, potential_board = alpha_beta(single_board, player=PLAYER2, depth=depth + 1, alpha=alpha, beta=beta)
+            best_score = max(best_score, score)
+            alpha = max(alpha, best_score)
+            best_board = potential_board
+            if alpha >= beta:
+                break
+        return best_score, best_board
+    if player == PLAYER2:  # min
+        best_score = 10000
+        for single_board in children_moves:
+            score, potential_board = alpha_beta(single_board, player=PLAYER1, depth=depth + 1, alpha=alpha, beta=beta)
+            best_score = min(best_score, score)
+            beta = min(beta, best_score)
+            best_board = potential_board
+            if beta <= alpha:
+                break
+        return best_score, best_board
+
+
 def is_game_over(board):
     if board.count_pawns('w') == 0:
         return True
@@ -88,12 +136,6 @@ def is_game_over(board):
     return False
 
 
-# def all_possible_moves_for_player(board, player):
-#     moves = []
-#     for single_pawn in board.pawns:
-#         if single_pawn.color == PLAYER1:
-#             if is_pawn_on_field(single_pawn.x+1,single_pawn.y-1) == False:
-#                 moves.append(Field())
 
 def get_all_correct_moves(board, player):
     correct_moves = []
@@ -177,8 +219,11 @@ def get_captures_for_pawn_right(board, pawn, player) -> (Board, None):
         direction = -1
 
     board_with_captured = None
-    if board.does_field_exist(pawn.x + 1, pawn.y + direction) and board.does_field_exist(pawn.x + 2, pawn.y + (2 * direction)):
-        if board.is_opponent_pawn(player, pawn.x + 1, pawn.y + direction) and board.is_empty_field(pawn.x + 2, pawn.y + (2 * direction)):
+    if board.does_field_exist(pawn.x + 1, pawn.y + direction) and board.does_field_exist(pawn.x + 2,
+                                                                                         pawn.y + (2 * direction)):
+        if board.is_opponent_pawn(player, pawn.x + 1, pawn.y + direction) and board.is_empty_field(pawn.x + 2,
+                                                                                                   pawn.y + (
+                                                                                                           2 * direction)):
             future_pawn = Field(pawn.x + 2, pawn.y + (2 * direction), pawn.pawn, pawn.value)
             opponent_pawn = Field(pawn.x + 1, pawn.y + direction, "c", 0)
             board_with_captured = board.copy_board()
@@ -200,8 +245,11 @@ def get_captures_for_pawn_left(board, pawn, player) -> (Board, None):
         direction = -1
 
     board_with_captured = None
-    if board.does_field_exist(pawn.x - 1, pawn.y + direction) and board.does_field_exist(pawn.x - 2, pawn.y + (2 * direction)):
-        if board.is_opponent_pawn(player, pawn.x - 1, pawn.y + direction) and board.is_empty_field(pawn.x - 2, pawn.y + (2 * direction)):
+    if board.does_field_exist(pawn.x - 1, pawn.y + direction) and board.does_field_exist(pawn.x - 2,
+                                                                                         pawn.y + (2 * direction)):
+        if board.is_opponent_pawn(player, pawn.x - 1, pawn.y + direction) and board.is_empty_field(pawn.x - 2,
+                                                                                                   pawn.y + (
+                                                                                                           2 * direction)):
             future_pawn = Field(pawn.x - 2, pawn.y + (2 * direction), pawn.pawn, pawn.value)
             opponent_pawn = Field(pawn.x - 1, pawn.y + direction, "c", 0)
             board_with_captured = board.copy_board()
@@ -296,35 +344,6 @@ def is_correct_move(board, possible_field):
         if board.is_empty_field(possible_field.x, possible_field.y):
             return True
     return False
-
-
-# def is_possible_to_kill(board, field_start, player):
-#     # w dwoch kierunkach kierunkach
-#     if player == PLAYER1:
-#         direction = -1
-#         enemy = PLAYER2
-#     else:
-#         direction = 1
-#         enemy = PLAYER1
-#     possible_enemy_right = Field(field_start.x + 1, field_start.y + direction, field_start.pawn, field_start.value)
-#     possible_enemy_left = Field(field_start.x - 1, field_start.y - direction, field_start.pawn, field_start.value)
-#     possible_field_right = Field(field_start.x + 2, field_start.y + 2 * direction, field_start.pawn, field_start.value)
-#     possible_field_left = Field(field_start.x - 2, field_start.y - 2 * direction, field_start.pawn, field_start.value)
-#     # sprawdz czy przeciwnik, sprawdz czy za nim puste pole
-#     wynik_wielkiego_ifa = False
-#     if board.does_field_exist(possible_enemy_right):
-#         if board[possible_enemy_right.y][possible_enemy_right.x].pawn == enemy:
-#             if board.does_field_exist(possible_field_right):
-#                 if board.is_empty_field(possible_field_right):
-#                     wynik_wielkiego_ifa = True
-#     elif board.does_field_exist(possible_enemy_left):
-#         if board[possible_enemy_left.y][possible_enemy_left.x].pawn == enemy:
-#             if board.does_field_exist(possible_field_left):
-#                 if board.is_empty_field(possible_field_left):
-#                     wynik_wielkiego_ifa = True
-#     else:
-#         wynik_wielkiego_ifa = False
-#     return wynik_wielkiego_ifa
 
 
 main()
